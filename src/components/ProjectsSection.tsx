@@ -14,29 +14,6 @@ interface Project {
   featured: boolean | null;
 }
 
-const fallbackProjects: Project[] = [
-  {
-    id: "1",
-    title: "MuzixHub",
-    description: "A modern music platform where users can browse, discover, and play music with a responsive immersive UI and real-time backend integration.",
-    tech_stack: ["TypeScript", "React", "Framer Motion", "Cloud"],
-    github_url: "https://github.com/premingg",
-    live_url: "#",
-    image_url: null,
-    featured: true,
-  },
-  {
-    id: "2",
-    title: "Coming Soon..",
-    description: "A new high-quality product is currently in progress and will be published here soon.",
-    tech_stack: ["TBD"],
-    github_url: "https://github.com/premingg",
-    live_url: "#",
-    image_url: null,
-    featured: false,
-  },
-];
-
 const gradients = [
   "radial-gradient(ellipse at 25% 20%, hsl(270 91% 75% / 0.25), transparent 62%), radial-gradient(ellipse at 80% 90%, hsl(270 91% 75% / 0.18), transparent 55%)",
   "radial-gradient(ellipse at 15% 30%, hsl(239 84% 53% / 0.28), transparent 65%), radial-gradient(ellipse at 85% 75%, hsl(270 91% 75% / 0.14), transparent 55%)",
@@ -46,9 +23,7 @@ const gradients = [
 const LaptopMockup = ({ project }: { project: Project }) => {
   return (
     <div className="w-full h-full flex items-center justify-center p-4 sm:p-6">
-      {/* Laptop container */}
       <div className="w-full max-w-[480px]">
-        {/* Screen */}
         <div
           className="relative rounded-t-xl overflow-hidden border border-b-0"
           style={{
@@ -57,14 +32,12 @@ const LaptopMockup = ({ project }: { project: Project }) => {
             aspectRatio: "16 / 10",
           }}
         >
-          {/* Screen bezel top */}
           <div
             className="h-5 flex items-center justify-center"
             style={{ backgroundColor: "hsl(0 0% 12%)", borderBottom: "1px solid hsl(0 0% 20% / 0.4)" }}
           >
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "hsl(0 0% 25%)" }} />
           </div>
-          {/* Screen content */}
           <div className="relative w-full h-[calc(100%-20px)] overflow-hidden">
             {project.image_url ? (
               <img src={project.image_url} alt={project.title} className="w-full h-full object-cover" />
@@ -96,7 +69,6 @@ const LaptopMockup = ({ project }: { project: Project }) => {
             )}
           </div>
         </div>
-        {/* Laptop base / hinge */}
         <div
           className="h-3 rounded-b-md mx-auto"
           style={{
@@ -107,13 +79,9 @@ const LaptopMockup = ({ project }: { project: Project }) => {
             borderBottomRightRadius: "12px",
           }}
         />
-        {/* Bottom notch */}
         <div
           className="h-1 mx-auto rounded-b-sm"
-          style={{
-            width: "25%",
-            backgroundColor: "hsl(0 0% 18%)",
-          }}
+          style={{ width: "25%", backgroundColor: "hsl(0 0% 18%)" }}
         />
       </div>
     </div>
@@ -150,7 +118,6 @@ const StickyProjectCard = ({ project, index, total }: { project: Project; index:
           <div className="absolute inset-0 pointer-events-none" style={{ background: gradients[index % gradients.length] }} />
 
           <div className="relative z-10 grid h-full lg:grid-cols-[1fr_1fr]">
-            {/* Left: Info */}
             <div className="p-5 sm:p-7 lg:p-8 flex flex-col" style={{ borderRight: "1px solid hsl(0 0% 100% / 0.06)" }}>
               <p className="text-sm font-semibold mb-4 text-muted-foreground">
                 {String(index + 1).padStart(2, "0")} - {String(total).padStart(2, "0")}
@@ -176,7 +143,7 @@ const StickyProjectCard = ({ project, index, total }: { project: Project; index:
                 ))}
               </div>
               <div className="mt-auto flex flex-wrap gap-3">
-                {project.live_url && (
+                {project.live_url && project.live_url !== "#" && (
                   <motion.a
                     href={project.live_url}
                     target="_blank"
@@ -189,7 +156,7 @@ const StickyProjectCard = ({ project, index, total }: { project: Project; index:
                     <ExternalLink size={14} /> Live Site
                   </motion.a>
                 )}
-                {project.github_url && (
+                {project.github_url && project.github_url !== "#" && (
                   <motion.a
                     href={project.github_url}
                     target="_blank"
@@ -207,8 +174,6 @@ const StickyProjectCard = ({ project, index, total }: { project: Project; index:
                 )}
               </div>
             </div>
-
-            {/* Right: Laptop Mockup */}
             <LaptopMockup project={project} />
           </div>
         </div>
@@ -227,37 +192,13 @@ const ProjectsSection = () => {
       .select("*")
       .order("sort_order")
       .then(({ data }) => {
-        setProjects(data && data.length > 0 ? data : fallbackProjects);
+        setProjects(data || []);
         setLoaded(true);
       });
   }, []);
 
   if (!loaded) return null;
-  const filteredProjects = projects.filter(
-    (project) => project.title.trim().toLowerCase() !== "wall of fame"
-  );
-  const comingSoonProjects = filteredProjects.filter((project) =>
-    project.title.trim().toLowerCase().startsWith("coming soon")
-  );
-  const nonComingSoonProjects = filteredProjects.filter(
-    (project) => !project.title.trim().toLowerCase().startsWith("coming soon")
-  );
-  const singleComingSoon =
-    comingSoonProjects.length > 0
-      ? [comingSoonProjects[0]]
-      : [
-          {
-            id: "coming-soon-runtime",
-            title: "Coming Soon..",
-            description: "A new project will be added here shortly.",
-            tech_stack: ["TBD"],
-            github_url: "https://github.com/premingg",
-            live_url: "#",
-            image_url: null,
-            featured: false,
-          },
-        ];
-  const displayProjects = [...nonComingSoonProjects, ...singleComingSoon];
+  if (projects.length === 0) return null;
 
   return (
     <section id="projects" className="relative z-10 py-16 sm:py-20">
@@ -272,12 +213,12 @@ const ProjectsSection = () => {
           Projects
         </motion.h2>
       </div>
-      {displayProjects.map((project, index) => (
+      {projects.map((project, index) => (
         <StickyProjectCard
           key={project.id}
           project={project}
           index={index}
-          total={displayProjects.length}
+          total={projects.length}
         />
       ))}
     </section>

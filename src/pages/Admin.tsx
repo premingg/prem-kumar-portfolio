@@ -1,20 +1,18 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { LayoutDashboard, FolderKanban, MessageSquare, BarChart3, Clock, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, FolderKanban, MessageSquare, Clock, LogOut, Menu } from "lucide-react";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminProjects from "@/components/admin/AdminProjects";
 import AdminMessages from "@/components/admin/AdminMessages";
-import AdminAnalytics from "@/components/admin/AdminAnalytics";
 import AdminTimeline from "@/components/admin/AdminTimeline";
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "projects", label: "Projects", icon: FolderKanban },
   { id: "messages", label: "Messages", icon: MessageSquare },
-  { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "timeline", label: "Timeline", icon: Clock },
 ];
 
@@ -50,7 +48,6 @@ const Admin = () => {
       case "dashboard": return <AdminDashboard />;
       case "projects": return <AdminProjects />;
       case "messages": return <AdminMessages />;
-      case "analytics": return <AdminAnalytics />;
       case "timeline": return <AdminTimeline />;
       default: return <AdminDashboard />;
     }
@@ -58,7 +55,6 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: "#0C0C0C", cursor: "auto" }}>
-      {/* Sidebar */}
       <aside
         className={`fixed lg:static inset-y-0 left-0 z-50 w-64 transform transition-transform lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -102,12 +98,10 @@ const Admin = () => {
         </div>
       </aside>
 
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Main */}
       <main className="flex-1 min-h-screen overflow-auto">
         <header
           className="sticky top-0 z-30 h-16 flex items-center justify-between px-6"
