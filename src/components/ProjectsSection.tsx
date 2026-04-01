@@ -14,6 +14,19 @@ interface Project {
   featured: boolean | null;
 }
 
+const fallbackProjects: Project[] = [
+  {
+    id: "fallback-muzixhub",
+    title: "MuzixHub",
+    description: "A sleek music discovery experience with immersive visuals, smooth interactions, and a modern frontend built to feel alive.",
+    tech_stack: ["React", "TypeScript", "Tailwind CSS", "Framer Motion"],
+    github_url: "https://github.com/premingg",
+    live_url: "#",
+    image_url: null,
+    featured: true,
+  },
+];
+
 const gradients = [
   "radial-gradient(ellipse at 25% 20%, hsl(270 91% 75% / 0.25), transparent 62%), radial-gradient(ellipse at 80% 90%, hsl(270 91% 75% / 0.18), transparent 55%)",
   "radial-gradient(ellipse at 15% 30%, hsl(239 84% 53% / 0.28), transparent 65%), radial-gradient(ellipse at 85% 75%, hsl(270 91% 75% / 0.14), transparent 55%)",
@@ -52,7 +65,7 @@ const LaptopMockup = ({ project }: { project: Project }) => {
                 />
                 <div className="relative z-10 text-center">
                   <h4 className="text-lg sm:text-xl font-bold text-foreground mb-1">{project.title}</h4>
-                  <p className="text-xs text-muted-foreground">{project.featured ? "⭐ Featured Project" : "Preview Coming Soon"}</p>
+                  <p className="text-xs text-muted-foreground">{project.featured ? "⭐ Featured Project" : "Project Preview"}</p>
                 </div>
                 <div className="relative z-10 flex gap-2 mt-2">
                   {(project.tech_stack || []).slice(0, 3).map((tech) => (
@@ -187,18 +200,27 @@ const ProjectsSection = () => {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from("projects")
-      .select("*")
-      .order("sort_order")
-      .then(({ data }) => {
-        setProjects(data || []);
+    const fetchProjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .order("sort_order");
+
+        if (error) throw error;
+        setProjects(data && data.length > 0 ? data : fallbackProjects);
+      } catch (error) {
+        console.error("Failed to load projects section", error);
+        setProjects(fallbackProjects);
+      } finally {
         setLoaded(true);
-      });
+      }
+    };
+
+    fetchProjects();
   }, []);
 
   if (!loaded) return null;
-  if (projects.length === 0) return null;
 
   return (
     <section id="projects" className="relative z-10 py-16 sm:py-20">

@@ -12,23 +12,53 @@ interface TimelineEntry {
   sort_order: number | null;
 }
 
+const fallbackEntries: TimelineEntry[] = [
+  {
+    id: "fallback-journey",
+    title: "My Journey is Just Beginning",
+    company: "Building, learning, and improving every single day",
+    start_date: "2024",
+    end_date: "Present",
+    description: "Second-year CS student focused on frontend craft, full-stack growth, and creating polished digital experiences.",
+    sort_order: 0,
+  },
+  {
+    id: "fallback-education",
+    title: "Education",
+    company: "Computer Science",
+    start_date: "2024",
+    end_date: "Present",
+    description: "Growing through DSA, web development, system design fundamentals, and hands-on product building.",
+    sort_order: 1,
+  },
+];
+
 const ExperienceSection = () => {
   const [entries, setEntries] = useState<TimelineEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from("timeline_entries")
-      .select("*")
-      .order("sort_order")
-      .then(({ data }) => {
-        setEntries(data || []);
+    const fetchEntries = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("timeline_entries")
+          .select("*")
+          .order("sort_order");
+
+        if (error) throw error;
+        setEntries(data && data.length > 0 ? data : fallbackEntries);
+      } catch (error) {
+        console.error("Failed to load experience section", error);
+        setEntries(fallbackEntries);
+      } finally {
         setLoaded(true);
-      });
+      }
+    };
+
+    fetchEntries();
   }, []);
 
   if (!loaded) return null;
-  if (entries.length === 0) return null;
 
   return (
     <section id="experience" className="relative z-10 py-32">

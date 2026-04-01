@@ -14,38 +14,52 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState<Stats>({ totalProjects: 0, totalMessages: 0, totalViews: 0, uniqueVisitors: 0 });
   const [chartData, setChartData] = useState<{ date: string; views: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
-      const [projectsRes, messagesRes, viewsRes] = await Promise.all([
-        supabase.from("projects").select("id", { count: "exact", head: true }),
-        supabase.from("messages").select("id", { count: "exact", head: true }),
-        supabase.from("page_views").select("visitor_id, created_at"),
-      ]);
+      try {
+        setError(null);
+        const [projectsRes, messagesRes, viewsRes] = await Promise.all([
+          supabase.from("projects").select("id", { count: "exact", head: true }),
+          supabase.from("messages").select("id", { count: "exact", head: true }),
+          supabase.from("page_views").select("visitor_id, created_at"),
+        ]);
 
-      const views = viewsRes.data || [];
-      const uniqueIds = new Set(views.map((v) => v.visitor_id));
+        if (projectsRes.error) throw projectsRes.error;
+        if (messagesRes.error) throw messagesRes.error;
+        if (viewsRes.error) throw viewsRes.error;
 
-      // Group by date for chart
-      const grouped: Record<string, number> = {};
-      views.forEach((v) => {
-        const d = v.created_at.split("T")[0];
-        grouped[d] = (grouped[d] || 0) + 1;
-      });
-      const chart = Object.entries(grouped)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .slice(-14)
-        .map(([date, views]) => ({ date: date.slice(5), views }));
+        const views = viewsRes.data || [];
+        const uniqueIds = new Set(views.map((v) => v.visitor_id));
+        const grouped: Record<string, number> = {};
 
-      setStats({
-        totalProjects: projectsRes.count || 0,
-        totalMessages: messagesRes.count || 0,
-        totalViews: views.length,
-        uniqueVisitors: uniqueIds.size,
-      });
-      setChartData(chart);
-      setLoading(false);
+        views.forEach((v) => {
+          const day = v.created_at?.split("T")[0];
+          if (!day) return;
+          grouped[day] = (grouped[day] || 0) + 1;
+        });
+
+        const chart = Object.entries(grouped)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .slice(-14)
+          .map(([date, views]) => ({ date: date.slice(5), views }));
+
+        setStats({
+          totalProjects: projectsRes.count || 0,
+          totalMessages: messagesRes.count || 0,
+          totalViews: views.length,
+          uniqueVisitors: uniqueIds.size,
+        });
+        setChartData(chart);
+      } catch (err) {
+        console.error("Failed to load dashboard stats", err);
+        setError("Could not load dashboard stats.");
+      } finally {
+        setLoading(false);
+      }
     };
+
     fetchStats();
   }, []);
 
@@ -57,6 +71,7 @@ const AdminDashboard = () => {
   ];
 
   if (loading) return <div className="text-muted-foreground">Loading...</div>;
+  if (error) return <div className="text-muted-foreground">{error}</div>;
 
   return (
     <div className="space-y-8">
@@ -90,17 +105,23 @@ const AdminDashboard = () => {
         }}
       >
         <h3 className="text-lg font-semibold text-foreground mb-4">Traffic (Last 14 days)</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={chartData}>
-            <XAxis dataKey="date" stroke="#666" fontSize={12} />
-            <YAxis stroke="#666" fontSize={12} />
-            <Tooltip
-              contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }}
-              labelStyle={{ color: "#999" }}
-            />
-            <Line type="monotone" dataKey="views" stroke="#c084fc" strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <XAxis dataKey="date" stroke="#666" fontSize={12} />
+              <YAxis stroke="#666" fontSize={12} />
+              <Tooltip
+                contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }}
+                labelStyle={{ color: "#999" }}
+              />
+              <Line type="monotone" dataKey="views" stroke="#c084fc" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">
+            No real analytics yet.
+          </div>
+        )}
       </div>
     </div>
   );

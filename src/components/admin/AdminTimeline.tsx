@@ -24,40 +24,55 @@ const AdminTimeline = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchEntries = async () => {
-    const { data } = await supabase.from("timeline_entries").select("*").order("sort_order");
-    setEntries(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.from("timeline_entries").select("*").order("sort_order");
+      if (error) throw error;
+      setEntries(data || []);
+    } catch (error) {
+      console.error("Failed to load timeline", error);
+      toast.error("Could not load timeline");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchEntries(); }, []);
 
   const handleSave = async () => {
     if (!form.title.trim()) { toast.error("Title is required"); return; }
+    if (!form.start_date.trim()) { toast.error("Time is required"); return; }
     setSaving(true);
 
-    const payload = {
-      title: form.title.trim(),
-      company: form.company.trim(),
-      start_date: form.start_date || "",
-      end_date: form.end_date || "Present",
-      description: form.description.trim(),
-      sort_order: parseInt(form.sort_order) || 0,
-    };
+    try {
+      const payload = {
+        title: form.title.trim(),
+        company: form.company.trim(),
+        start_date: form.start_date.trim(),
+        end_date: form.end_date.trim() || "Present",
+        description: form.description.trim(),
+        sort_order: parseInt(form.sort_order) || 0,
+      };
 
-    if (editing) {
-      const { error } = await supabase.from("timeline_entries").update(payload).eq("id", editing);
-      if (error) { toast.error("Update failed"); setSaving(false); return; }
-      toast.success("Entry updated");
-    } else {
-      const { error } = await supabase.from("timeline_entries").insert(payload);
-      if (error) { toast.error("Create failed"); setSaving(false); return; }
-      toast.success("Entry created");
+      if (editing) {
+        const { error } = await supabase.from("timeline_entries").update(payload).eq("id", editing);
+        if (error) throw error;
+        toast.success("Entry updated");
+      } else {
+        const { error } = await supabase.from("timeline_entries").insert(payload);
+        if (error) throw error;
+        toast.success("Entry created");
+      }
+
+      setShowForm(false);
+      setEditing(null);
+      setForm(emptyEntry);
+      await fetchEntries();
+    } catch (error) {
+      console.error("Failed to save timeline entry", error);
+      toast.error(error instanceof Error ? error.message : "Timeline save failed");
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm(emptyEntry);
-    setSaving(false);
-    fetchEntries();
   };
 
   const handleEdit = (e: TimelineEntry) => {
@@ -147,6 +162,11 @@ const AdminTimeline = () => {
       )}
 
       <div className="space-y-3">
+        {entries.length === 0 && (
+          <div className="p-5 rounded-2xl text-sm text-muted-foreground" style={{ background: "hsl(0 0% 7%)", border: "1px solid hsl(0 0% 100% / 0.06)" }}>
+            No timeline entries yet. Add one here and it will extend the experience section.
+          </div>
+        )}
         {entries.map((e) => (
           <div key={e.id} className="flex items-center justify-between p-4 rounded-xl" style={{ background: "hsl(0 0% 7%)", border: "1px solid hsl(0 0% 100% / 0.06)" }}>
             <div>

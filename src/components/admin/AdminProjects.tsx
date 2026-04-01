@@ -36,9 +36,16 @@ const AdminProjects = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchProjects = async () => {
-    const { data } = await supabase.from("projects").select("*").order("sort_order");
-    setProjects(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.from("projects").select("*").order("sort_order");
+      if (error) throw error;
+      setProjects(data || []);
+    } catch (error) {
+      console.error("Failed to load projects", error);
+      toast.error("Could not load projects");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchProjects(); }, []);
@@ -68,37 +75,46 @@ const AdminProjects = () => {
     if (!form.title.trim()) { toast.error("Project title is required"); return; }
     setSaving(true);
 
-    let imageUrl: string | null = null;
-    if (imageFile) imageUrl = await uploadImage(imageFile);
+    try {
+      let imageUrl: string | null = null;
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile);
+        if (!imageUrl) throw new Error("Image upload failed");
+      }
 
-    const payload = {
-      title: form.title.trim(),
-      description: form.description.trim(),
-      tech_stack: form.tech_stack.split(",").map((s) => s.trim()).filter(Boolean),
-      github_url: form.github_url || null,
-      live_url: form.live_url || null,
-      featured: form.featured,
-      sort_order: parseInt(form.sort_order) || 0,
-      ...(imageUrl ? { image_url: imageUrl } : {}),
-    };
+      const payload = {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        tech_stack: form.tech_stack.split(",").map((s) => s.trim()).filter(Boolean),
+        github_url: form.github_url.trim() || null,
+        live_url: form.live_url.trim() || null,
+        featured: form.featured,
+        sort_order: parseInt(form.sort_order) || 0,
+        ...(imageUrl ? { image_url: imageUrl } : {}),
+      };
 
-    if (editing) {
-      const { error } = await supabase.from("projects").update(payload).eq("id", editing);
-      if (error) { toast.error("Update failed"); setSaving(false); return; }
-      toast.success("Project updated");
-    } else {
-      const { error } = await supabase.from("projects").insert(payload);
-      if (error) { toast.error("Create failed"); setSaving(false); return; }
-      toast.success("Project created");
+      if (editing) {
+        const { error } = await supabase.from("projects").update(payload).eq("id", editing);
+        if (error) throw error;
+        toast.success("Project updated");
+      } else {
+        const { error } = await supabase.from("projects").insert(payload);
+        if (error) throw error;
+        toast.success("Project created");
+      }
+
+      setShowForm(false);
+      setEditing(null);
+      setForm(emptyProject);
+      setImageFile(null);
+      setImagePreview(null);
+      await fetchProjects();
+    } catch (error) {
+      console.error("Failed to save project", error);
+      toast.error(error instanceof Error ? error.message : "Project save failed");
+    } finally {
+      setSaving(false);
     }
-
-    setShowForm(false);
-    setEditing(null);
-    setForm(emptyProject);
-    setImageFile(null);
-    setImagePreview(null);
-    setSaving(false);
-    fetchProjects();
   };
 
   const handleEdit = (p: Project) => {
@@ -214,6 +230,11 @@ const AdminProjects = () => {
       )}
 
       <div className="space-y-3">
+        {projects.length === 0 && (
+          <div className="p-5 rounded-2xl text-sm text-muted-foreground" style={{ background: "hsl(0 0% 7%)", border: "1px solid hsl(0 0% 100% / 0.06)" }}>
+            No projects yet. Add one here and it will appear in the portfolio section.
+          </div>
+        )}
         {projects.map((p) => (
           <div
             key={p.id}
