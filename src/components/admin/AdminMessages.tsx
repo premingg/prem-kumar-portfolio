@@ -17,22 +17,41 @@ const AdminMessages = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchMessages = async () => {
-    const { data } = await supabase.from("messages").select("*").order("created_at", { ascending: false });
-    setMessages(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.from("messages").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error) {
+      console.error("Failed to load messages", error);
+      toast.error("Could not load messages");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchMessages(); }, []);
 
   const toggleRead = async (msg: Message) => {
-    await supabase.from("messages").update({ is_read: !msg.is_read }).eq("id", msg.id);
-    fetchMessages();
+    try {
+      const { error } = await supabase.from("messages").update({ is_read: !msg.is_read }).eq("id", msg.id);
+      if (error) throw error;
+      await fetchMessages();
+    } catch (error) {
+      console.error("Failed to update message", error);
+      toast.error("Could not update message");
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("messages").delete().eq("id", id);
-    toast.success("Message deleted");
-    fetchMessages();
+    try {
+      const { error } = await supabase.from("messages").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Message deleted");
+      await fetchMessages();
+    } catch (error) {
+      console.error("Failed to delete message", error);
+      toast.error("Could not delete message");
+    }
   };
 
   if (loading) return <div className="text-muted-foreground">Loading...</div>;

@@ -38,6 +38,7 @@ const GitHubSection = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
+  const [scanColumn, setScanColumn] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -139,6 +140,16 @@ const GitHubSection = () => {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (loading || error || weeks.length === 0) return;
+
+    const interval = window.setInterval(() => {
+      setScanColumn((prev) => (prev + 1) % weeks.length);
+    }, 140);
+
+    return () => window.clearInterval(interval);
+  }, [loading, error, weeks.length]);
 
   const statsData = [
     { label: "Repositories", value: profile ? `${profile.public_repos}` : "8+" },
@@ -246,6 +257,28 @@ const GitHubSection = () => {
             position: "relative",
           }}
         >
+          {!loading && !error && weeks.length > 0 && (
+            <motion.div
+              aria-hidden="true"
+              className="pointer-events-none absolute top-4 bottom-4"
+              animate={{
+                left: dayLabelWidth + scanColumn * cellStep,
+                opacity: [0.18, 0.42, 0.18],
+              }}
+              transition={{
+                left: { type: "spring", stiffness: 90, damping: 18 },
+                opacity: { duration: 1.2, repeat: Infinity, ease: "easeInOut" },
+              }}
+              style={{
+                width: cellSize + 10,
+                borderRadius: 999,
+                background: "linear-gradient(180deg, hsl(var(--github-green) / 0), hsl(var(--github-green) / 0.26), hsl(var(--github-green) / 0))",
+                filter: "blur(10px)",
+                mixBlendMode: "screen",
+              }}
+            />
+          )}
+
           {loading ? (
             <div className="flex items-center justify-center h-32">
               <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: "#21262d", borderTopColor: "#39d353" }} />
